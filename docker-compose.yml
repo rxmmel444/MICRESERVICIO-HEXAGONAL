@@ -1,0 +1,54 @@
+version: '3.8'  # Versión del archivo de especificación de Docker Compose
+
+services:
+  # Servicio de base de datos MySQL
+  mysql-db:
+    image: mysql:8.0  # Imagen oficial de MySQL versión 8
+    container_name: mysql-db  # Nombre personalizado del contenedor
+    ports:
+      - "3307:3306"  # Mapea el puerto local 3307 al 3306 del contenedor
+    environment:
+      MYSQL_ROOT_PASSWORD: admin  # Contraseña del usuario root
+      MYSQL_DATABASE: usuarios     # Crea automáticamente la base de datos "usuarios"
+    restart: always  # Reinicia el contenedor automáticamente si falla
+    volumes:
+      - mysql-data:/var/lib/mysql  # Persistencia de datos MySQL
+    healthcheck:  # Verifica que MySQL esté disponible
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Microservicio Spring Boot para usuarios
+  microservicio.usuarios:
+    build: microservicio.usuarios  # Ruta al Dockerfile del microservicio
+    container_name: microservicio.usuarios
+    ports:
+      - "8080:8080"  # Mapea el puerto de Spring Boot
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/usuarios?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC  # Conexión a MySQL por nombre de servicio
+      - SPRING_DATASOURCE_USERNAME=root  # Usuario de base de datos
+      - SPRING_DATASOURCE_PASSWORD=admin  # Contraseña
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update  # Auto-actualiza esquema
+    restart: always
+    depends_on:
+      mysql-db:
+        condition: service_healthy  # Solo inicia si MySQL está saludable
+
+  # Servicio de integración continua Jenkins
+  jenkins:
+    image: jenkins/jenkins:lts  # Imagen LTS oficial de Jenkins
+    container_name: jenkins
+    ports:
+      - "8081:8080"  # Mapea puerto Jenkins (host 8081 -> contenedor 8080)
+    volumes:
+      - jenkins_home:/var/jenkins_home  # Persistencia del workspace de Jenkins
+      - /var/run/docker.sock:/var/run/docker.sock  # Permite a Jenkins controlar Docker
+    networks:
+      - default
+
+# Volúmenes persistentes para MySQL y Jenkins
+volumes:
+  mysql-data:
+  jenkins_home:
+
