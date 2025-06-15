@@ -30,8 +30,8 @@ pipeline {
         stage('Build Maven') {
             steps {
         sh 'docker-compose exec -T microservicio.usuarios mvn clean install'
-    }
-}
+            }
+        }
 
 
 
