@@ -1,6 +1,7 @@
 pipeline {
     agent any
 
+
     stages {
         stage('Clonar código') {
             steps {
@@ -26,6 +27,13 @@ pipeline {
                 sh 'curl -f http://localhost:8080/actuator/health || true'
             }
         }
+        stage('Build Maven') {
+            steps {
+        sh 'docker-compose exec -T microservicio.usuarios mvn clean install'
+    }
+}
+
+
 
         stage('Finalizar') {
             steps {
